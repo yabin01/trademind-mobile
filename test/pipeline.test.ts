@@ -128,6 +128,27 @@ function run() {
     if (otherConn.length !== 0) problems.push(`conn1 之外不应有交易，实为 ${otherConn.length} 笔`);
   }
 
+  // ---- 回归：默认查询不得截断（曾因默认 LIMIT 200 导致 1209 笔只显示 165 笔）----
+  const bulk: any[] = [];
+  const base = Date.now() - 200 * 86_400_000;
+  for (let i = 0; i < 250; i++) {
+    const open = new Date(base + i * 86_000_000).toISOString();
+    bulk.push({
+      ...mapHlTrade({ coin: 'BTC', entryPrice: 100, exitPrice: 101, quantity: 0.1, direction: 'Long', openTimeMs: Date.parse(open), closeTimeMs: Date.parse(open) + 3_600_000, grossPnl: 1, fees: 0.1, funding: 0, netPnl: 0.9, openTid: i, closeTid: i, fillCount: 2, partialEntry: false }, account.id),
+      id: uid(),
+      externalTradeId: null, // 走 manual dedupKey 路径
+      openTime: open,
+      closeTime: new Date(Date.parse(open) + 3_600_000).toISOString(),
+    });
+  }
+  const bulkRes = importTrades(bulk);
+  const allAfterBulk = getTradesAsModels({});
+  console.log('批量入库 inserted:', bulkRes.inserted, '| 全量查询返回:', allAfterBulk.length);
+  if (bulkRes.inserted !== 250) problems.push(`批量 250 笔应全部插入，实为 inserted=${bulkRes.inserted}`);
+  if (allAfterBulk.length !== 252) problems.push(`默认查询必须返回全量 252 笔（不得默认 LIMIT 200），实为 ${allAfterBulk.length}`);
+  const limited = getTradesAsModels({ limit: 10 });
+  if (limited.length !== 10) problems.push(`显式 limit=10 应返回 10 笔，实为 ${limited.length}`);
+
   if (problems.length) {
     console.error('\n❌ PIPELINE TEST FAILED:');
     for (const p of problems) console.error('  - ' + p);

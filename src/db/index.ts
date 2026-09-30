@@ -217,7 +217,7 @@ export interface TradeFilter {
 
 export function getTrades(filter: TradeFilter = {}): TradeRow[] {
   const where: string[] = [];
-  const params: unknown[] = [];
+  const params: (string | number | boolean | null)[] = [];
   if (filter.accountId) {
     where.push('account_id = ?');
     params.push(filter.accountId);
@@ -259,10 +259,15 @@ export function getTrades(filter: TradeFilter = {}): TradeRow[] {
     params.push(s, s, s);
   }
   const order = filter.order ?? 'DESC';
-  const limit = filter.limit ?? 200;
+  // 仅在显式传入 limit/offset 时才截断；默认必须返回全量
+  //（曾因默认 LIMIT 200 导致看板/复盘只统计最新 200 笔的严重口径错误）
+  const hasLimit = filter.limit !== undefined;
+  const limit = filter.limit ?? -1;
   const offset = filter.offset ?? 0;
-  const sql = `SELECT * FROM trades ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY open_time ${order} LIMIT ? OFFSET ?`;
-  return expoDb.getAllSync<TradeRow>(sql, [...params, limit, offset]);
+  const limitSql = hasLimit ? ' LIMIT ? OFFSET ?' : '';
+  const limitParams = hasLimit ? [limit, offset] : [];
+  const sql = `SELECT * FROM trades ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY open_time ${order}${limitSql}`;
+  return expoDb.getAllSync<TradeRow>(sql, [...params, ...limitParams]);
 }
 
 export function getTradeById(id: string): TradeRow | null {

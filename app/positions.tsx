@@ -80,6 +80,16 @@ export default function Positions() {
     setSel(null);
   }
 
+  // Hooks 规则：useMemo 必须在任何条件 return 之前调用，
+  // 否则 loading 翻转后 hook 数量变化 → React「Rendered fewer hooks」崩溃
+  const connChoices = useMemo(() => {
+    try {
+      return getConnectionChoices();
+    } catch {
+      return [];
+    }
+  }, [loading, positions]);
+
   const styles = makeStyles(pal);
 
   if (loading) {
@@ -93,13 +103,6 @@ export default function Positions() {
   }
 
   const visible = connId ? positions.filter((p) => p.connId === connId) : positions;
-  const connChoices = useMemo(() => {
-    try {
-      return getConnectionChoices();
-    } catch {
-      return [];
-    }
-  }, [loading]);
 
   return (
     <Screen>
