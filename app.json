@@ -1,13 +1,16 @@
 {
   "expo": {
     "name": "TradeMind",
-    "slug": "trademind-mobile",
+    "slug": "trademind",
     "version": "1.0.0",
     "scheme": "trademind",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "platforms": ["android", "ios"],
+    "platforms": [
+      "android",
+      "ios"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.trademind.mobile"
@@ -15,7 +18,9 @@
     "android": {
       "package": "com.trademind.mobile",
       "versionCode": 1,
-      "permissions": ["INTERNET"],
+      "permissions": [
+        "INTERNET"
+      ],
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
@@ -33,14 +38,17 @@
     "experiments": {
       "typedRoutes": false
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "extra": {
       "router": {
         "origin": false
       },
       "eas": {
-        "projectId": "trademind-mobile"
+        "projectId": "e33a0611-bad2-4736-ad92-ccc36a97f119"
       }
-    }
+    },
+    "owner": "cryptoalexs-team"
   }
 }
