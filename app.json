@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "com.trademind.mobile",
-      "versionCode": 2,
+      "versionCode": 3,
       "permissions": [
         "INTERNET"
       ],
@@ -44,7 +44,8 @@
           "faceID": false
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": false

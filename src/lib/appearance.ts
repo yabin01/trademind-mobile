@@ -15,6 +15,7 @@ export type Palette = {
   down: string;
   accent: string;
   warn: string;
+  dark: boolean;
 };
 
 const PALETTES: Record<'light' | 'dark', Palette> = {
@@ -28,6 +29,7 @@ const PALETTES: Record<'light' | 'dark', Palette> = {
     down: '#22c55e',
     accent: '#3B82F6',
     warn: '#F59E0B',
+    dark: false,
   },
   dark: {
     bg: '#0B0E14',
@@ -39,6 +41,7 @@ const PALETTES: Record<'light' | 'dark', Palette> = {
     down: '#22c55e',
     accent: '#3B82F6',
     warn: '#F59E0B',
+    dark: true,
   },
 };
 

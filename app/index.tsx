@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
+import { router } from 'expo-router';
 import { Card, Empty, Screen, SectionTitle, Segmented, StatTile } from '@tm/components/ui';
 import { useAppearance } from '@tm/lib/appearance';
 import { fmtNum, fmtPct, fmtPnl, rangeFromIso } from '@tm/lib/format';
@@ -46,9 +47,15 @@ export default function Dashboard() {
   if (trades.length === 0) {
     return (
       <Screen>
-        <Card>
-          <Empty text="还没有数据。去「设置」绑定 OKX / Hyperliquid 同步，或从 OKX 网页导出 CSV 导入，即可开始分析。" />
+        <Card style={{ marginTop: 8 }}>
+          <Empty
+            icon="bar-chart-outline"
+            text="还没有交易数据"
+            hint="绑定交易所自动同步，或导入 OKX 历史 CSV（可回溯到 2021 年）"
+          />
         </Card>
+        <PrimaryButton title="绑定 OKX / Hyperliquid" onPress={() => router.push('/settings/add-connection')} />
+        <PrimaryButton title="导入历史 CSV" onPress={() => router.push('/settings/import')} />
       </Screen>
     );
   }
@@ -114,5 +121,5 @@ export default function Dashboard() {
 }
 
 const styles = StyleSheet.create({
-  kpiRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  kpiRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
 });

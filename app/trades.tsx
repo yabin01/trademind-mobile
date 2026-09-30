@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Card, Input, Screen, Segmented, Tag } from '@tm/components/ui';
+import { Card, Empty, Input, Screen, Segmented, Tag } from '@tm/components/ui';
 import { useAppearance } from '@tm/lib/appearance';
 import { fmtDate, fmtPnl, fmtTs } from '@tm/lib/format';
 import { closedTrades, filterByWindow } from '@tm/lib/metrics';

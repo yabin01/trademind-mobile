@@ -8,13 +8,18 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppearance, type Palette } from '@tm/lib/appearance';
 import { fmtPnl } from '@tm/lib/format';
 
 export function Screen({ children, style }: { children: React.ReactNode; style?: object }) {
   const pal = useAppearance();
   return (
-    <ScrollView style={[styles.screen, { backgroundColor: pal.bg }]} contentContainerStyle={[{ padding: 16, paddingBottom: 40 }, style]}>
+    <ScrollView
+      style={[styles.screen, { backgroundColor: pal.bg }]}
+      contentContainerStyle={[{ padding: 16, paddingBottom: 48 }, style]}
+      showsVerticalScrollIndicator={false}
+    >
       {children}
     </ScrollView>
   );
@@ -23,14 +28,28 @@ export function Screen({ children, style }: { children: React.ReactNode; style?:
 export function Card({ children, style, onPress }: { children: React.ReactNode; style?: object; onPress?: () => void }) {
   const pal = useAppearance();
   const content = (
-    <View style={[styles.card, { backgroundColor: pal.card, borderColor: pal.border }, style]}>{children}</View>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: pal.card, borderColor: pal.border, ...shadow(pal) },
+        style,
+      ]}
+    >
+      {children}
+    </View>
   );
-  return onPress ? <Pressable onPress={onPress}>{content}</Pressable> : content;
+  return onPress ? (
+    <Pressable onPress={onPress} style={({ pressed }) => [{ transform: [{ scale: pressed ? 0.99 : 1 }] }]}>
+      {content}
+    </Pressable>
+  ) : (
+    content
+  );
 }
 
-export function SectionTitle({ text }: { text: string }) {
+export function SectionTitle({ text, style }: { text: string; style?: object }) {
   const pal = useAppearance();
-  return <Text style={[styles.sectionTitle, { color: pal.sub }]}>{text}</Text>;
+  return <Text style={[styles.sectionTitle, { color: pal.sub }, style]}>{text}</Text>;
 }
 
 export function StatTile({
@@ -48,7 +67,14 @@ export function StatTile({
 }) {
   const pal = useAppearance();
   return (
-    <View style={[styles.statTile, align === 'right' && { alignItems: 'flex-end' }, align === 'center' && { alignItems: 'center' }]}>
+    <View
+      style={[
+        styles.statTile,
+        { backgroundColor: pal.bg, borderColor: pal.border },
+        align === 'right' && { alignItems: 'flex-end' },
+        align === 'center' && { alignItems: 'center' },
+      ]}
+    >
       <Text style={[styles.statLabel, { color: pal.sub }]}>{label}</Text>
       <Text style={[styles.statValue, { color: color ?? pal.text }]}>{value}</Text>
       {sub ? <Text style={[styles.statSub, { color: pal.sub }]}>{sub}</Text> : null}
@@ -87,7 +113,10 @@ export function PrimaryButton({
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
-      style={[styles.btn, { backgroundColor: disabled ? pal.border : pal.accent, opacity: disabled ? 0.6 : 1 }]}
+      style={({ pressed }) => [
+        styles.btn,
+        { backgroundColor: disabled ? pal.border : pal.accent, opacity: disabled ? 0.55 : pressed ? 0.9 : 1 },
+      ]}
     >
       {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{title}</Text>}
     </Pressable>
@@ -97,17 +126,22 @@ export function PrimaryButton({
 export function GhostButton({ title, onPress }: { title: string; onPress: () => void }) {
   const pal = useAppearance();
   return (
-    <Pressable onPress={onPress} style={[styles.btnGhost, { borderColor: pal.border }]}>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.btnGhost, { borderColor: pal.border }, pressed && { opacity: 0.8 }]}>
       <Text style={[styles.btnGhostText, { color: pal.text }]}>{title}</Text>
     </Pressable>
   );
 }
 
-export function Empty({ text }: { text: string }) {
+/** 统一空状态：圆形图标底 + 主文案 + 可选引导 */
+export function Empty({ text, hint, icon = 'folder-open-outline' }: { text: string; hint?: string; icon?: keyof typeof Ionicons.glyphMap }) {
   const pal = useAppearance();
   return (
     <View style={styles.empty}>
+      <View style={[styles.emptyIcon, { backgroundColor: pal.bg, borderColor: pal.border }]}>
+        <Ionicons name={icon} size={30} color={pal.sub} />
+      </View>
       <Text style={[styles.emptyText, { color: pal.sub }]}>{text}</Text>
+      {hint ? <Text style={[styles.emptyHint, { color: pal.sub }]}>{hint}</Text> : null}
     </View>
   );
 }
@@ -130,9 +164,9 @@ export function Segmented<T extends string>({
           <Pressable
             key={o.key}
             onPress={() => onChange(o.key)}
-            style={[styles.segItem, active && { backgroundColor: pal.accent }]}
+            style={[styles.segItem, active && { backgroundColor: pal.card, ...shadow(pal) }, active && pal.dark && { backgroundColor: '#1C2330' }]}
           >
-            <Text style={[styles.segText, { color: active ? '#fff' : pal.sub }]}>{o.label}</Text>
+            <Text style={[styles.segText, { color: active ? pal.accent : pal.sub }]}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -164,7 +198,7 @@ export function Input({
       multiline={multiline}
       style={[
         styles.input,
-        { backgroundColor: pal.bg, borderColor: pal.border, color: pal.text },
+        { backgroundColor: pal.card, borderColor: pal.border, color: pal.text },
         multiline && { height: 96, textAlignVertical: 'top' },
       ]}
     />
@@ -174,7 +208,7 @@ export function Input({
 export function Row({ label, value, color }: { label: string; value: React.ReactNode; color?: string }) {
   const pal = useAppearance();
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, { borderBottomColor: pal.border }]}>
       <Text style={[styles.rowLabel, { color: pal.sub }]}>{label}</Text>
       <Text style={[styles.rowValue, { color: color ?? pal.text }]}>{value}</Text>
     </View>
@@ -185,28 +219,50 @@ export function Spinner({ pal }: { pal: Palette }) {
   return <ActivityIndicator color={pal.accent} />;
 }
 
+/** 轻投影：亮色主题浅阴影，暗色主题仅提亮描边不加阴影 */
+function shadow(pal: Palette) {
+  if (pal.dark) return {};
+  return {
+    shadowColor: '#0B0E14',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  };
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  card: { borderRadius: 14, borderWidth: 1, padding: 14, marginBottom: 12 },
-  sectionTitle: { fontSize: 13, fontWeight: '600', marginTop: 8, marginBottom: 8, letterSpacing: 0.5 },
-  statTile: { flex: 1, padding: 10, borderRadius: 10, backgroundColor: 'transparent' },
+  card: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 14 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', marginTop: 12, marginBottom: 8, letterSpacing: 0.8 },
+  statTile: { flex: 1, padding: 12, borderRadius: 12, borderWidth: 1 },
   statLabel: { fontSize: 12 },
-  statValue: { fontSize: 20, fontWeight: '700', marginTop: 2 },
-  statSub: { fontSize: 11, marginTop: 2 },
+  statValue: { fontSize: 21, fontWeight: '800', marginTop: 3 },
+  statSub: { fontSize: 11, marginTop: 3 },
   pnl: { fontWeight: '700' },
-  tag: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, marginRight: 6, marginBottom: 6 },
-  tagText: { fontSize: 11 },
-  btn: { borderRadius: 12, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  btnGhost: { borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 1, marginTop: 8 },
+  tag: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3, marginRight: 6, marginBottom: 6 },
+  tagText: { fontSize: 11, fontWeight: '600' },
+  btn: { borderRadius: 13, paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+  btnText: { color: '#fff', fontWeight: '700', fontSize: 15, letterSpacing: 0.3 },
+  btnGhost: { borderRadius: 13, paddingVertical: 13, alignItems: 'center', borderWidth: 1, marginTop: 8 },
   btnGhostText: { fontWeight: '600', fontSize: 15 },
-  empty: { padding: 40, alignItems: 'center' },
-  emptyText: { fontSize: 14, textAlign: 'center' },
-  seg: { flexDirection: 'row', borderRadius: 10, borderWidth: 1, padding: 3, marginBottom: 12 },
-  segItem: { flex: 1, paddingVertical: 7, alignItems: 'center', borderRadius: 8 },
-  segText: { fontSize: 13, fontWeight: '600' },
-  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, marginBottom: 10 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#00000010' },
+  empty: { padding: 36, alignItems: 'center' },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyText: { fontSize: 14, textAlign: 'center', lineHeight: 22, fontWeight: '500' },
+  emptyHint: { fontSize: 12, textAlign: 'center', marginTop: 6, opacity: 0.7 },
+  seg: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 3, marginBottom: 12 },
+  segItem: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
+  segText: { fontSize: 13, fontWeight: '700' },
+  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 11, fontSize: 15, marginBottom: 10 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: StyleSheet.hairlineWidth },
   rowLabel: { fontSize: 14 },
   rowValue: { fontSize: 14, fontWeight: '600', maxWidth: '60%', textAlign: 'right' },
 });

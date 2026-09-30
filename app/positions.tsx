@@ -96,10 +96,14 @@ export default function Positions() {
         </Pressable>
       </View>
 
-      {error ? <Empty text={error} /> : null}
+      {error ? <Card><Empty icon="cloud-offline-outline" text="拉取实时持仓失败" hint={error} /></Card> : null}
       {positions.length === 0 && !error ? (
         <Card>
-          <Empty text="当前没有未平仓合约。去「设置」绑定交易所并同步后，这里会实时显示持仓。" />
+          <Empty
+            icon="layers-outline"
+            text="当前没有未平仓合约"
+            hint="去「设置」绑定交易所并同步后，这里会实时显示持仓"
+          />
         </Card>
       ) : (
         <FlatList
@@ -165,11 +169,18 @@ export default function Positions() {
   );
 }
 
+// 模块级布局样式：Cell 在组件外定义，不能引用组件内的 styles（会 ReferenceError）
+const cellStyles = StyleSheet.create({
+  cell: { width: '33%', marginBottom: 8 },
+  cellLabel: { fontSize: 11 },
+  cellValue: { fontSize: 13, fontWeight: '600' },
+});
+
 function Cell({ label, value, pal }: { label: string; value: string; pal: ReturnType<typeof useAppearance> }) {
   return (
-    <View style={styles.cell}>
-      <Text style={[styles.cellLabel, { color: pal.sub }]}>{label}</Text>
-      <Text style={[styles.cellValue, { color: pal.text }]}>{value}</Text>
+    <View style={cellStyles.cell}>
+      <Text style={[cellStyles.cellLabel, { color: pal.sub }]}>{label}</Text>
+      <Text style={[cellStyles.cellValue, { color: pal.text }]}>{value}</Text>
     </View>
   );
 }
