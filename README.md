@@ -3,7 +3,9 @@
 自托管、离线优先的加密货币**交易日志与分析 App**，基于 Expo / React Native。
 与桌面端 [`TradeMind`](https://github.com/yabin01/TradeMind) 仓库**完全独立、互不依赖**——这是一个单独的仓库。
 
-> 源码公开、可自建，非 MIT 开源（仓库暂未附 LICENSE 文件）。
+> 基于 [MIT 协议](LICENSE) 开源，可自由使用、修改、分发与商用（需保留版权声明）。
+
+📦 **下载安卓 APK（无需 Google Play，直接安装）**：[Releases](https://github.com/yabin01/trademind-mobile/releases/latest)
 
 ## 设计要点
 
