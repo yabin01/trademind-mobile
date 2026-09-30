@@ -272,13 +272,13 @@ export function importTrades(incoming: UnifiedTrade[]): ImportResult {
   const deduped = dedupeTrades(incoming).trades;
   const existingExt = new Set(
     expoDb.getAllSync<{ externalTradeId: string; exchange: string; accountId: string }>(
-      'SELECT external_trade_id, exchange, account_id FROM trades WHERE external_trade_id IS NOT NULL',
+      'SELECT external_trade_id AS externalTradeId, exchange, account_id AS accountId FROM trades WHERE external_trade_id IS NOT NULL',
     ).map((r) => `${r.exchange}:${r.accountId}:${r.externalTradeId}`),
   );
   const existingManual = new Set(
     expoDb
       .getAllSync<{ exchange: string; accountId: string; openTime: string; closeTime: string | null; symbol: string; side: string }>(
-        'SELECT exchange, account_id, open_time, close_time, symbol, side FROM trades WHERE external_trade_id IS NULL',
+        'SELECT exchange, account_id AS accountId, open_time AS openTime, close_time AS closeTime, symbol, side FROM trades WHERE external_trade_id IS NULL',
       )
       .map((r) => [r.exchange, r.accountId, r.openTime, r.closeTime ?? 'OPEN', r.symbol, r.side].join(':')),
   );
@@ -343,46 +343,63 @@ export function importTrades(incoming: UnifiedTrade[]): ImportResult {
   return { inserted: toInsert.length, skipped: deduped.length - toInsert.length };
 }
 
-/** 行 -> 统一交易模型（解析 JSON 列） */
+/** 行 -> 统一交易模型（解析 JSON 列）。
+ * 重要：expo-sqlite 返回的行键是「列名」（snake_case，如 account_id / close_time），不会自动转驼峰，
+ * 因此这里必须按 snake_case 读取；camelCase 作为兜底（兼容不同 SQLite 驱动行为）。 */
 export function rowToTrade(r: TradeRow): UnifiedTrade {
+  const row = r as unknown as Record<string, unknown>;
+  const pick = (camel: string, snake: string): unknown => {
+    const a = row[camel];
+    if (a !== undefined && a !== null) return a;
+    return row[snake];
+  };
+  const str = (camel: string, snake: string): string | null => {
+    const v = pick(camel, snake);
+    return v == null ? null : String(v);
+  };
+  const num = (camel: string, snake: string): number | null => {
+    const v = pick(camel, snake);
+    return v == null ? null : Number(v);
+  };
+  const str2 = (snake: string): string | null => str(snake, snake);
   return {
-    id: r.id,
+    id: str2('id') as string,
     workspaceId: 'local',
-    accountId: r.accountId,
-    exchange: r.exchange as UnifiedTrade['exchange'],
-    symbol: r.symbol,
-    side: r.side as UnifiedTrade['side'],
-    positionSide: r.positionSide as UnifiedTrade['positionSide'],
-    entryPrice: r.entryPrice,
-    exitPrice: r.exitPrice,
-    quantity: r.quantity,
-    leverage: r.leverage,
-    stopLoss: r.stopLoss,
-    takeProfit: r.takeProfit,
-    openTime: r.openTime,
-    closeTime: r.closeTime,
-    grossPnl: r.grossPnl,
-    fees: r.fees,
-    funding: r.funding,
-    netPnl: r.netPnl,
-    risk: r.risk,
-    reward: r.reward,
-    rr: r.rr,
-    strategyId: r.strategyId,
-    tags: pjArr<string>(r.tags),
-    entryTags: pjArr<string>(r.entryTags),
-    exitTags: pjArr<string>(r.exitTags),
-    archived: !!r.archived,
-    mistakes: pjArr<string>(r.mistakes),
-    confidence: r.confidence,
-    marketCondition: r.marketCondition,
-    notes: r.notes,
-    screenshots: pjArr<string>(r.screenshots),
-    externalTradeId: r.externalTradeId,
-    chanlun: r.chanlun ? pj(r.chanlun) : null,
-    metadata: pj(r.metadata),
-    createdAt: r.createdAt,
-    updatedAt: r.updatedAt,
+    accountId: str2('account_id') as string,
+    exchange: str2('exchange') as UnifiedTrade['exchange'],
+    symbol: str2('symbol') as string,
+    side: str2('side') as UnifiedTrade['side'],
+    positionSide: str2('position_side') as UnifiedTrade['positionSide'],
+    entryPrice: Number(pick('entryPrice', 'entry_price') ?? 0),
+    exitPrice: num('exitPrice', 'exit_price'),
+    quantity: Number(pick('quantity', 'quantity') ?? 0),
+    leverage: Number(pick('leverage', 'leverage') ?? 1),
+    stopLoss: num('stopLoss', 'stop_loss'),
+    takeProfit: num('takeProfit', 'take_profit'),
+    openTime: str2('open_time') as string,
+    closeTime: str2('close_time'),
+    grossPnl: Number(pick('grossPnl', 'gross_pnl') ?? 0),
+    fees: Number(pick('fees', 'fees') ?? 0),
+    funding: Number(pick('funding', 'funding') ?? 0),
+    netPnl: Number(pick('netPnl', 'net_pnl') ?? 0),
+    risk: num('risk', 'risk'),
+    reward: num('reward', 'reward'),
+    rr: num('rr', 'rr'),
+    strategyId: str2('strategy_id'),
+    tags: pjArr<string>(str2('tags')),
+    entryTags: pjArr<string>(str2('entry_tags')),
+    exitTags: pjArr<string>(str2('exit_tags')),
+    archived: !!Number(pick('archived', 'archived') ?? 0),
+    mistakes: pjArr<string>(str2('mistakes')),
+    confidence: num('confidence', 'confidence'),
+    marketCondition: str2('market_condition'),
+    notes: str2('notes'),
+    screenshots: pjArr<string>(str2('screenshots')),
+    externalTradeId: str2('external_trade_id'),
+    chanlun: pick('chanlun', 'chanlun') == null ? null : pj(str2('chanlun') as string),
+    metadata: pj(str2('metadata') as string),
+    createdAt: str2('created_at') as string,
+    updatedAt: str2('updated_at') as string,
   };
 }
 
