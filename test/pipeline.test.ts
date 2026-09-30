@@ -7,7 +7,7 @@
  *
  * 运行：node --experimental-strip-types --experimental-loader ./test/loader.mjs ./test/pipeline.test.ts
  */
-import { migrate, ensureAccount, importTrades, getTradesAsModels, uid } from '../src/db/index.ts';
+import { migrate, ensureAccount, importTrades, getTradesAsModels, getConnectionChoices, insertConnection, uid } from '../src/db/index.ts';
 import { reconstructTradesFromFills } from '../src/core/exchange/hyperliquid.ts';
 import { computeCoreMetrics } from '../src/core/analytics/src/metrics.ts';
 import { filterByWindow, dailyPnlSeries, closedTrades } from '../src/lib/metrics.ts';
@@ -69,6 +69,10 @@ const fills: any[] = [
 
 function run() {
   migrate();
+  insertConnection({
+    id: 'conn1', exchange: 'HYPERLIQUID', name: 'Robin', status: 'CONNECTED', credentialsMeta: null,
+    lastSyncAt: null, autoSync: false, syncIntervalMin: 15, lastError: null, permissions: null,
+  });
   const account = ensureAccount('conn1', 'Robin', 'HYPERLIQUID', 'USDC');
   const hlTrades = reconstructTradesFromFills(fills);
   const toInsert = hlTrades.map((t) => mapHlTrade(t, account.id));
@@ -111,12 +115,25 @@ function run() {
   if (series.length !== 2) problems.push(`净值序列应为 2 点，实为 ${series.length}`);
   if (closed.length !== 2) problems.push(`复盘 closedTrades 应为 2，实为 ${closed.length}`);
 
+  // ---- 数据源筛选（按连接/API 查看）：getConnectionChoices + accountId 归属 ----
+  const choices = getConnectionChoices();
+  const conn1 = choices.find((c) => c.id === 'conn1');
+  console.log('连接选择器:', JSON.stringify(choices));
+  if (!conn1) problems.push('getConnectionChoices 应包含 conn1');
+  else {
+    if (!conn1.accountIds.includes(account.id)) problems.push('conn1 的 accountIds 应包含本次账户 id');
+    const scoped = raw.filter((t) => conn1.accountIds.includes(t.accountId));
+    if (scoped.length !== 2) problems.push(`按 conn1 筛选应得 2 笔，实为 ${scoped.length}`);
+    const otherConn = raw.filter((t) => !conn1.accountIds.includes(t.accountId));
+    if (otherConn.length !== 0) problems.push(`conn1 之外不应有交易，实为 ${otherConn.length} 笔`);
+  }
+
   if (problems.length) {
     console.error('\n❌ PIPELINE TEST FAILED:');
     for (const p of problems) console.error('  - ' + p);
     process.exit(1);
   }
-  console.log('\n✅ PIPELINE TEST PASSED：看板 / 交易 / 复盘 数据均可正常显示');
+  console.log('\n✅ PIPELINE TEST PASSED：看板 / 交易 / 复盘 数据均可正常显示，且按连接筛选归属正确');
   process.exit(0);
 }
 

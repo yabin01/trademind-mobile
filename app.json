@@ -23,7 +23,7 @@
     },
     "android": {
       "package": "com.trademind.mobile",
-      "versionCode": 6,
+      "versionCode": 7,
       "permissions": [
         "INTERNET"
       ],

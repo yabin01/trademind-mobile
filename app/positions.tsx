@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { Card, Empty, Input, PrimaryButton, Screen, SectionTitle, Tag } from '@tm/components/ui';
+import { Card, ConnPicker, Empty, Input, PrimaryButton, Screen, SectionTitle, Tag } from '@tm/components/ui';
 import { useAppearance } from '@tm/lib/appearance';
 import { fmtNum, fmtPnl, pnlColor } from '@tm/lib/format';
-import { getAccounts, getPositionNote, upsertPositionNote } from '@tm/db';
+import { getAccounts, getConnectionChoices, getPositionNote, upsertPositionNote } from '@tm/db';
+import { useSettings } from '@tm/store/settings';
 import {
   fetchLivePositions,
   listConnections,
@@ -12,27 +13,31 @@ import {
 
 export default function Positions() {
   const pal = useAppearance();
-  const [positions, setPositions] = useState<(LivePosition & { connName: string })[]>([]);
+  const [positions, setPositions] = useState<(LivePosition & { connId: string; connName: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sel, setSel] = useState<(LivePosition & { connName: string }) | null>(null);
+  const [sel, setSel] = useState<(LivePosition & { connId: string; connName: string }) | null>(null);
   const [noteText, setNoteText] = useState('');
   const [tagText, setTagText] = useState('');
   const [savedTag, setSavedTag] = useState<string[]>([]);
+  const connId = useSettings((s) => s.connId);
+  const setConnId = useSettings((s) => s.setConnId);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const conns = await listConnections();
-      const accounts = getAccounts();
-      const all: (LivePosition & { connName: string })[] = [];
+      const accounts = getAccounts() as unknown as { id: string; connection_id?: string; connectionId?: string }[];
+      const all: (LivePosition & { connId: string; connName: string })[] = [];
       for (const c of conns) {
         try {
           const ps = await fetchLivePositions(c.id);
-          const accId = accounts.find((a) => a.connectionId === c.id)?.id ?? c.id;
+          // 行键是 snake_case 列名（connection_id），驼峰兜底
+          const accId =
+            accounts.find((a) => (a.connection_id ?? a.connectionId) === c.id)?.id ?? c.id;
           for (const p of ps) {
-            all.push({ ...p, accountId: accId, connName: c.name });
+            all.push({ ...p, accountId: accId, connId: c.id, connName: c.name });
           }
         } catch (e) {
           setError(e instanceof Error ? e.message : '部分连接拉取失败');
@@ -50,7 +55,7 @@ export default function Positions() {
     void load();
   }, [load]);
 
-  function openAnnot(p: LivePosition & { connName: string }) {
+  function openAnnot(p: LivePosition & { connId: string; connName: string }) {
     setSel(p);
     const existing = getPositionNote(p.accountId, p.symbol, p.positionSide);
     setNoteText(existing?.notes ?? '');
@@ -87,17 +92,31 @@ export default function Positions() {
     );
   }
 
+  const visible = connId ? positions.filter((p) => p.connId === connId) : positions;
+  const connChoices = useMemo(() => {
+    try {
+      return getConnectionChoices();
+    } catch {
+      return [];
+    }
+  }, [loading]);
+
   return (
     <Screen>
+      <ConnPicker
+        choices={connChoices}
+        value={connId}
+        onChange={setConnId}
+      />
       <View style={styles.headerRow}>
-        <SectionTitle text={`实时持仓（${positions.length}）`} />
+        <SectionTitle text={`实时持仓（${visible.length}）`} />
         <Pressable onPress={() => void load()}>
           <Tag text="刷新" color={pal.accent} />
         </Pressable>
       </View>
 
       {error ? <Card><Empty icon="cloud-offline-outline" text="拉取实时持仓失败" hint={error} /></Card> : null}
-      {positions.length === 0 && !error ? (
+      {visible.length === 0 && !error ? (
         <Card>
           <Empty
             icon="layers-outline"
@@ -107,7 +126,7 @@ export default function Positions() {
         </Card>
       ) : (
         <FlatList
-          data={positions}
+          data={visible}
           keyExtractor={(p, i) => `${p.connectionId}-${p.symbol}-${p.positionSide}-${i}`}
           scrollEnabled={false}
           renderItem={({ item }) => {

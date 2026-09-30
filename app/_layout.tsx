@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Alert, Text, View, StyleSheet, ScrollView } from 'react-native';
 import { Tabs } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppearance, type Palette } from '@tm/lib/appearance';
 import { migrate } from '@tm/db';
@@ -62,7 +63,10 @@ export default function Layout() {
     ensureDb();
   }, []);
   return (
-    <Tabs
+    <>
+      {/* 状态栏与页面背景同色：黑条不再与内容割裂；亮色主题用深色图标 */}
+      <StatusBar style={pal.dark ? 'light' : 'dark'} backgroundColor={pal.bg} />
+      <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: pal.bg },
         headerTitleStyle: { color: pal.text, fontWeight: '800', fontSize: 18 },
@@ -91,7 +95,8 @@ export default function Layout() {
       <Tabs.Screen name="settings/connections" options={{ href: null }} />
       <Tabs.Screen name="settings/add-connection" options={{ href: null }} />
       <Tabs.Screen name="settings/import" options={{ href: null }} />
-    </Tabs>
+      </Tabs>
+    </>
   );
 }
 

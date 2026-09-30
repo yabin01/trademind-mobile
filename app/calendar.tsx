@@ -1,18 +1,23 @@
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Card, Input, PrimaryButton, Screen, SectionTitle, Tag } from '@tm/components/ui';
+import { Card, ConnPicker, Input, PrimaryButton, Screen, SectionTitle, Tag } from '@tm/components/ui';
 import { useAppearance } from '@tm/lib/appearance';
 import { dayKeyBeijing, fmtDate, fmtPnl, fmtTs } from '@tm/lib/format';
 import { closedTrades } from '@tm/lib/metrics';
 import { getDiaryNote, upsertDiaryNote } from '@tm/db';
-import { useAllTrades } from '@tm/store/trades';
+import { filterByConn, useAllTrades, useConnChoices } from '@tm/store/trades';
+import { useSettings } from '@tm/store/settings';
 import type { UnifiedTrade } from '@trademind/trading-core';
 
 const WEEK = ['一', '二', '三', '四', '五', '六', '日'];
 
 export default function Calendar() {
   const pal = useAppearance();
-  const { trades } = useAllTrades();
+  const { trades: allTrades } = useAllTrades();
+  const choices = useConnChoices();
+  const connId = useSettings((s) => s.connId);
+  const setConnId = useSettings((s) => s.setConnId);
+  const trades = useMemo(() => filterByConn(allTrades, choices, connId), [allTrades, choices, connId]);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth()); // 0-based
@@ -55,6 +60,7 @@ export default function Calendar() {
 
   return (
     <Screen>
+      <ConnPicker choices={choices} value={connId} onChange={setConnId} />
       <View style={styles.nav}>
         <Pressable onPress={() => shift(-1)}>
           <Text style={[styles.navBtn, { color: pal.accent }]}>‹</Text>

@@ -174,6 +174,50 @@ export function Segmented<T extends string>({
   );
 }
 
+/** 数据源选择器：横向滚动 chip，「全部」+ 各连接（用于按 API/账户切换数据） */
+export function ConnPicker({
+  choices,
+  value,
+  onChange,
+}: {
+  choices: { id: string; name: string; exchange: string }[];
+  value: string | null;
+  onChange: (id: string | null) => void;
+}) {
+  const pal = useAppearance();
+  if (choices.length === 0) return null;
+  const chips: { id: string | null; label: string }[] = [
+    { id: null, label: '全部' },
+    ...choices.map((c) => ({ id: c.id, label: c.name })),
+  ];
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.connPicker}
+      contentContainerStyle={styles.connPickerInner}
+    >
+      {chips.map((c) => {
+        const active = c.id === value;
+        return (
+          <Pressable
+            key={c.id ?? '__all__'}
+            onPress={() => onChange(c.id)}
+            style={[
+              styles.chip,
+              { borderColor: active ? pal.accent : pal.border, backgroundColor: active ? pal.accent : pal.card },
+            ]}
+          >
+            <Text style={[styles.chipText, { color: active ? '#fff' : pal.sub }]} numberOfLines={1}>
+              {c.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
 export function Input({
   value,
   onChangeText,
@@ -265,6 +309,10 @@ const styles = StyleSheet.create({
   seg: { flexDirection: 'row', borderRadius: 12, borderWidth: 1, padding: 3, marginBottom: 12 },
   segItem: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
   segText: { fontSize: 13, fontWeight: '700' },
+  connPicker: { flexGrow: 0, marginBottom: 10 },
+  connPickerInner: { gap: 8, paddingRight: 8 },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7, maxWidth: 160 },
+  chipText: { fontSize: 13, fontWeight: '600' },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 11, fontSize: 15, marginBottom: 10 },
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 9, borderBottomWidth: StyleSheet.hairlineWidth },
   rowLabel: { fontSize: 14 },

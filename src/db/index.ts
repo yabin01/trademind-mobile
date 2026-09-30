@@ -132,6 +132,27 @@ export function listConnections(): ConnectionRow[] {
   return expoDb.getAllSync<ConnectionRow>('SELECT * FROM connections ORDER BY created_at');
 }
 
+export interface ConnChoice {
+  id: string;
+  name: string;
+  exchange: string;
+  accountIds: string[];
+}
+
+/** 连接选择器数据源：每个连接关联的账户 id 列表（行键为 snake_case 列名） */
+export function getConnectionChoices(): ConnChoice[] {
+  const conns = expoDb.getAllSync<{ id: string; name: string; exchange: string }>(
+    'SELECT id, name, exchange FROM connections ORDER BY created_at',
+  );
+  const accs = expoDb.getAllSync<{ id: string; connection_id: string }>('SELECT id, connection_id FROM accounts');
+  return conns.map((c) => ({
+    id: c.id,
+    name: c.name,
+    exchange: c.exchange,
+    accountIds: accs.filter((a) => a.connection_id === c.id).map((a) => a.id),
+  }));
+}
+
 export function insertConnection(row: Omit<ConnectionRow, 'createdAt'> & { createdAt?: string }): ConnectionRow {
   const createdAt = row.createdAt ?? new Date().toISOString();
   expoDb.runSync(

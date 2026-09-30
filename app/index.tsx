@@ -2,12 +2,12 @@ import { useMemo } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { router } from 'expo-router';
-import { Card, Empty, Screen, SectionTitle, Segmented, StatTile } from '@tm/components/ui';
+import { Card, ConnPicker, Empty, Screen, SectionTitle, Segmented, StatTile } from '@tm/components/ui';
 import { useAppearance } from '@tm/lib/appearance';
 import { fmtNum, fmtPct, fmtPnl, rangeFromIso } from '@tm/lib/format';
 import { computeCoreMetrics, dailyPnlSeries, filterByWindow } from '@tm/lib/metrics';
 import { rangeDays, useSettings, type RangeKey } from '@tm/store/settings';
-import { useAllTrades } from '@tm/store/trades';
+import { filterByConn, useAllTrades, useConnChoices } from '@tm/store/trades';
 import { listConnections, syncConnection } from '@tm/core/exchange/sync';
 import { useState } from 'react';
 import { PrimaryButton } from '@tm/components/ui';
@@ -22,11 +22,15 @@ const RANGE_OPTS: { key: RangeKey; label: string }[] = [
 export default function Dashboard() {
   const pal = useAppearance();
   const { trades } = useAllTrades();
+  const choices = useConnChoices();
   const range = useSettings((s) => s.range);
   const setRange = useSettings((s) => s.setRange);
+  const connId = useSettings((s) => s.connId);
+  const setConnId = useSettings((s) => s.setConnId);
   const [syncing, setSyncing] = useState(false);
 
-  const windowTrades = useMemo(() => filterByWindow(trades, rangeDays(range)), [trades, range]);
+  const scoped = useMemo(() => filterByConn(trades, choices, connId), [trades, choices, connId]);
+  const windowTrades = useMemo(() => filterByWindow(scoped, rangeDays(range)), [scoped, range]);
   const metrics = useMemo(() => computeCoreMetrics(windowTrades), [windowTrades]);
   const series = useMemo(() => dailyPnlSeries(windowTrades), [windowTrades]);
 
@@ -36,8 +40,9 @@ export default function Dashboard() {
     setSyncing(true);
     try {
       const conns = await listConnections();
-      for (const c of conns) {
-        if (c.status !== 'FAILED') await syncConnection(c.id).catch(() => {});
+      const targets = connId ? conns.filter((c) => c.id === connId) : conns;
+      for (const c of targets) {
+        if (connId || c.status !== 'FAILED') await syncConnection(c.id).catch(() => {});
       }
     } finally {
       setSyncing(false);
@@ -60,10 +65,22 @@ export default function Dashboard() {
     );
   }
 
+  if (scoped.length === 0) {
+    return (
+      <Screen>
+        <ConnPicker choices={choices} value={connId} onChange={setConnId} />
+        <Card style={{ marginTop: 8 }}>
+          <Empty icon="swap-horizontal-outline" text="该连接暂无交易数据" hint="先去连接管理点「同步」，或切回「全部」查看汇总" />
+        </Card>
+      </Screen>
+    );
+  }
+
   const pfText = metrics.profitFactor === Infinity ? '∞' : fmtNum(metrics.profitFactor);
 
   return (
     <Screen>
+      <ConnPicker choices={choices} value={connId} onChange={setConnId} />
       <Segmented options={RANGE_OPTS} value={range} onChange={setRange} />
 
       <Card>
@@ -115,7 +132,11 @@ export default function Dashboard() {
         )}
       </Card>
 
-      <PrimaryButton title={syncing ? '同步中…' : '同步全部连接'} onPress={quickSync} loading={syncing} />
+      <PrimaryButton
+        title={syncing ? '同步中…' : connId ? '同步当前连接' : '同步全部连接'}
+        onPress={quickSync}
+        loading={syncing}
+      />
     </Screen>
   );
 }
