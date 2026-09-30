@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "TradeMind",
+    "slug": "trademind-mobile",
+    "version": "1.0.0",
+    "scheme": "trademind",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "platforms": ["android", "ios"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.trademind.mobile"
+    },
+    "android": {
+      "package": "com.trademind.mobile",
+      "versionCode": 1,
+      "permissions": ["INTERNET"],
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-secure-store",
+        {
+          "faceID": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "assetBundlePatterns": ["**/*"],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "trademind-mobile"
+      }
+    }
+  }
+}

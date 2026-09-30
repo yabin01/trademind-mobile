@@ -1,0 +1,21 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@trademind/trading-core": ["src/core/trading-core/src/index.ts"],
+      "@trademind/analytics": ["src/core/analytics/src/index.ts"],
+      "@tm/core/*": ["src/core/*"],
+      "@tm/db/*": ["src/db/*"],
+      "@tm/lib/*": ["src/lib/*"],
+      "@tm/store/*": ["src/store/*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
+}

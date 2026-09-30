@@ -1,0 +1,47 @@
+{
+  "name": "trademind-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TradeMind 安卓端：自托管、离线优先的加密货币交易日志与分析 App（Expo / React Native）。与桌面端 trademind 仓库相互独立。",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "lint": "expo lint"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.5.0",
+    "base64-js": "^1.5.1",
+    "drizzle-orm": "^0.38.3",
+    "expo": "~52.0.46",
+    "expo-constants": "~17.0.8",
+    "expo-document-picker": "~12.0.2",
+    "expo-file-system": "~18.0.12",
+    "expo-linking": "~7.0.4",
+    "expo-router": "~4.0.17",
+    "expo-secure-store": "~14.0.1",
+    "expo-sqlite": "~15.0.6",
+    "expo-status-bar": "~2.0.1",
+    "react": "18.3.1",
+    "react-native": "0.76.9",
+    "react-native-chart-kit": "^6.12.0",
+    "react-native-svg": "^15.11.1",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/react": "~18.3.12",
+    "babel-preset-expo": "~12.0.0",
+    "babel-plugin-module-resolver": "^5.0.2",
+    "typescript": "~5.3.3"
+  },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "enabled": false
+      }
+    }
+  }
+}
