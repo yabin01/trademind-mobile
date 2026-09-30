@@ -49,8 +49,9 @@ export function computeCoreMetrics(trades: UnifiedTrade[]): CoreMetrics {
   const grossLoss = grossPnls
     .filter((p) => p < 0)
     .reduce((a, b) => a + Math.abs(b), 0);
-  const fees = trades.reduce((a, t) => a + t.fees, 0);
-  const funding = trades.reduce((a, t) => a + t.funding, 0);
+  // 口径：手续费/资金费与净盈亏一致，只统计已平仓交易（未平仓的手续费不进 KPI）
+  const fees = cs.reduce((a, t) => a + t.fees, 0);
+  const funding = cs.reduce((a, t) => a + t.funding, 0);
   const netPnl = cs.reduce((a, t) => a + t.netPnl, 0);
 
   const winningTrades = winSet.length;

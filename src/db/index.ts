@@ -87,6 +87,10 @@ let migrated = false;
 export function migrate(): void {
   if (migrated) return;
   expoDb.execSync(MIGRATION);
+  // 自愈：上次进程被杀可能把连接留在 SYNCING 状态，启动时不可能真有同步在跑
+  expoDb.runSync(
+    "UPDATE connections SET status = 'FAILED', last_error = '上次同步被中断，请重新同步' WHERE status = 'SYNCING'",
+  );
   migrated = true;
 }
 
@@ -149,12 +153,17 @@ export function insertConnection(row: Omit<ConnectionRow, 'createdAt'> & { creat
   return { ...row, createdAt };
 }
 
+/** camelCase 字段名 -> snake_case 列名（connections/trades 均为 snake_case 列） */
+function toColumn(k: string): string {
+  return k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+}
+
 export function updateConnection(id: string, patch: Partial<ConnectionRow>): void {
   const sets: string[] = [];
   const vals: unknown[] = [];
   for (const [k, v] of Object.entries(patch)) {
     if (v === undefined) continue;
-    sets.push(`${k} = ?`);
+    sets.push(`${toColumn(k)} = ?`);
     vals.push(typeof v === 'boolean' ? (v ? 1 : 0) : v);
   }
   if (sets.length === 0) return;
@@ -244,7 +253,7 @@ export function updateTrade(id: string, patch: Partial<TradeRow>): void {
   const vals: unknown[] = [];
   for (const [k, v] of Object.entries(patch)) {
     if (v === undefined || k === 'id') continue;
-    sets.push(`${k} = ?`);
+    sets.push(`${toColumn(k)} = ?`);
     vals.push(typeof v === 'boolean' ? (v ? 1 : 0) : v);
   }
   if (sets.length === 0) return;
