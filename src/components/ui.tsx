@@ -180,12 +180,14 @@ export function Input({
   placeholder,
   secure,
   multiline,
+  autoCapitalize,
 }: {
   value: string;
   onChangeText: (t: string) => void;
   placeholder?: string;
   secure?: boolean;
   multiline?: boolean;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }) {
   const pal = useAppearance();
   return (
@@ -196,6 +198,8 @@ export function Input({
       placeholderTextColor={pal.sub}
       secureTextEntry={secure}
       multiline={multiline}
+      autoCapitalize={autoCapitalize}
+      autoCorrect={false}
       style={[
         styles.input,
         { backgroundColor: pal.card, borderColor: pal.border, color: pal.text },

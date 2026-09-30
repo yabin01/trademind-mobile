@@ -106,9 +106,20 @@ export async function createConnection(input: {
     credMeta = c.walletAddress;
   } else {
     const c = input.credentials as OkxCredentials;
-    if (!c.apiKey || !c.secretKey || !c.passphrase) throw new Error('OKX 需要 apiKey / secretKey / passphrase');
-    credMeta = c.apiKey;
+    if (!c.apiKey?.trim() || !c.secretKey?.trim() || !c.passphrase?.trim())
+      throw new Error('OKX 需要 apiKey / secretKey / passphrase 三项都填写');
+    credMeta = c.apiKey.trim();
   }
+
+  // 幂等：同一交易所 + 同一凭证（apiKey / 钱包地址）已存在时，复用原连接并更新凭证，
+  // 避免反复点击「添加」产生一堆重复条目
+  const existing = dbListConnections().find((r) => r.exchange === input.exchange && r.credentialsMeta === credMeta);
+  if (existing) {
+    updateConnection(existing.id, { name: input.name.trim() });
+    await saveCredential(existing.id, input.credentials);
+    return (await listConnections()).find((c) => c.id === existing.id)!;
+  }
+
   insertConnection({
     id,
     exchange: input.exchange,

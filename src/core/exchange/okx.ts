@@ -18,6 +18,32 @@ export type OkxResponse<T> = { code: string; msg: string; data: T };
 
 const OKX_BASE = 'https://www.okx.com';
 
+/** 常见错误码的中文排查提示 */
+const OKX_ERROR_HINTS: Record<string, string> = {
+  '50102': '手机时间与服务器偏差过大，请校准系统时间后重试',
+  '50111': 'API Key 无效，请核对是否复制完整',
+  '50112': 'IP 不在白名单：请到 OKX 后台「API → 编辑」把手机当前网络出口 IP 加入白名单（用 VPN 时填 VPN 节点出口 IP），或改用不限 IP 的只读密钥',
+  '50113': '签名校验失败：请检查 Secret Key / Passphrase 是否正确',
+  '50110': '该 API Key 已被删除或失效，请到 OKX 后台重新生成',
+  '50121': '该密钥没有读取行情/账户权限，请勾选「读取」权限',
+};
+
+async function okxError(res: Response, fallback: string): Promise<Error> {
+  let msg = fallback;
+  let code = '';
+  try {
+    const j = (await res.json()) as OkxResponse<unknown>;
+    code = j.code ?? '';
+    msg = `${code}: ${j.msg || fallback}`;
+  } catch {
+    if (res.status === 401) msg = '401: 认证失败，请检查密钥';
+    else if (res.status === 403) msg = '403: 被拒绝（多为 IP 白名单限制）';
+    else msg = `${res.status}: 网络请求失败（检查网络/VPN 是否可用）`;
+  }
+  const hint = OKX_ERROR_HINTS[code];
+  return new Error(hint ? `OKX ${msg} —— ${hint}` : `OKX ${msg}`);
+}
+
 function sign(secretKey: string, timestamp: string, method: string, requestPath: string, body = ''): string {
   return hmacSha256Base64(secretKey, `${timestamp}${method}${requestPath}${body}`);
 }
@@ -36,9 +62,15 @@ function authHeaders(cred: OkxCredentials, method: string, requestPath: string, 
 }
 
 async function okxGet<T>(requestPath: string, cred: OkxCredentials): Promise<T> {
-  const res = await fetch(`${OKX_BASE}${requestPath}`, { headers: authHeaders(cred, 'GET', requestPath) });
-  const json = (await res.json()) as OkxResponse<T>;
-  if (json.code !== '0') throw new Error(`OKX ${json.code}: ${json.msg || '请求失败'}`);
+  let res: Response;
+  try {
+    res = await fetch(`${OKX_BASE}${requestPath}`, { headers: authHeaders(cred, 'GET', requestPath) });
+  } catch {
+    throw new Error('无法连接 www.okx.com：请检查手机网络，以及 VPN/代理是否已开启');
+  }
+  const json = (await res.json().catch(() => null)) as OkxResponse<T> | null;
+  if (!json) throw new Error(`OKX 返回异常（HTTP ${res.status}）`);
+  if (json.code !== '0') throw await okxError(res, json.msg || '请求失败');
   return json.data;
 }
 
@@ -47,15 +79,20 @@ async function okxPostRaw(
   cred: OkxCredentials,
   body: string,
 ): Promise<OkxResponse<unknown>> {
-  const res = await fetch(`${OKX_BASE}${requestPath}`, {
-    method: 'POST',
-    headers: authHeaders(cred, 'POST', requestPath, body),
-    body,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${OKX_BASE}${requestPath}`, {
+      method: 'POST',
+      headers: authHeaders(cred, 'POST', requestPath, body),
+      body,
+    });
+  } catch {
+    return { code: '-2', msg: '无法连接 www.okx.com（检查网络/VPN）', data: null };
+  }
   try {
     return (await res.json()) as OkxResponse<unknown>;
   } catch {
-    return { code: '-1', msg: '非 JSON 响应', data: null };
+    return { code: '-1', msg: `非 JSON 响应（HTTP ${res.status}）`, data: null };
   }
 }
 
